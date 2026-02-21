@@ -1,9 +1,12 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import Canvas
+from tkinter import ttk, messagebox, Canvas
+from Login import LoginFrame
 import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt 
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+
 
 
 
@@ -31,6 +34,8 @@ root.geometry("1200x800")
 root.configure(bg=BG)
 icon = tk.PhotoImage(file="FunnyMEME.png")  # Ensure you have an icon.png in the same directory
 root.iconphoto(True, icon)
+dashboard = tk.Frame(root, bg=BG)
+dashboard.pack(fill="both", expand=True)
 
 
 # ---------------------------------------------
@@ -43,10 +48,24 @@ def create_card(parent, row, col, width=300, height=150):
     frame.config(width=width, height=height)
     return frame
 
+#login button code
+def open_login():
+    win = tk.Toplevel(root)
+    win.title("Login")
+    win.geometry("350x220")
+    win.grab_set()
+
+    def on_success(user_info=None):
+        win.destroy()
+        dashboard.pack(fill="both", expand=True)
+
+    login_ui = LoginFrame(win, on_login_success=on_success)
+    login_ui.pack(fill="both", expand=True)
+
 # ---------------------------------------------
 # TITLE BAR
 # ---------------------------------------------
-title_frame = tk.Frame(root, bg=BG)
+title_frame = tk.Frame(dashboard, bg=BG)
 title_frame.pack(fill="x", padx=20, pady=10)
 
 title_label = tk.Label(
@@ -61,13 +80,14 @@ title_label.pack(side="left")
 upload_button = tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY, fg=TEXT_DARK, font=("Segoe UI", 10), bd=0, relief="flat")
 upload_button.pack(side="right", padx=10)
 
-login_button = tk.Button(title_frame, text="Login", bg=GREEN, fg="white", font=("Segoe UI", 10, "bold"), bd=0, relief="flat")
+
+login_button = tk.Button(title_frame, text="Login", bg=GREEN, fg="white", font=("Segoe UI", 10, "bold"), bd=0, relief="flat", command=open_login)
 login_button.pack(side="right", padx=10)
 
 # ---------------------------------------------
 # MAIN GRID
 # ---------------------------------------------
-main_frame = tk.Frame(root, bg=LIGHT_GRAY)
+main_frame = tk.Frame(dashboard, bg=LIGHT_GRAY)
 main_frame.pack(fill="both", expand=1)
 
 my_canvas = Canvas(main_frame , bg=LIGHT_GRAY, )
@@ -186,11 +206,12 @@ ax.set_xlabel("Time")
 ax.set_ylabel("AQI")
 fig.tight_layout()
 
-canvas = matplotlib.backends.backend_tkagg.FigureCanvasTkAgg(fig, master=chart_card)
+canvas = FigureCanvasTkAgg(fig, master=chart_card)
+canvas.draw()
 canvas.get_tk_widget().pack()
 
 # Chart 2: Bar Chart
-chart_card2 = create_card(seconframe, 550, 300)
+chart_card2 = create_card(seconframe, 950, 300)
 tk.Label(chart_card2, text="City Comparison", font=("Segoe UI", 14, "bold"), bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
 fig2, ax2 = plt.subplots(figsize=(5, 2.5))
@@ -203,7 +224,8 @@ ax2.bar(cities, pm10, bottom=pm25, label="PM10")
 ax2.legend()
 fig2.tight_layout()
 
-canvas2 = matplotlib.backends.backend_tkagg.FigureCanvasTkAgg(fig2, master=chart_card2)
+canvas2 = FigureCanvasTkAgg(fig2, master=chart_card2) 
+canvas2.draw()  
 canvas2.get_tk_widget().pack()
 
 # ---------------------------------------------
