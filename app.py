@@ -67,7 +67,7 @@ def open_login():
 def open_upload():
     win = tk.Toplevel(root)
     win.title("Upload Data")
-    win.geometry("400x550")
+    win.geometry("900x200")
     win.grab_set()
 
     upload_ui = UploadFrame(win)
