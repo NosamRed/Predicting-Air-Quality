@@ -1,13 +1,16 @@
 import tkinter as tk
 from tkinter import messagebox
 import pandas as pd
+import os
 
 class UploadFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.create_widgets()
+        
 
-    def create_widgets(self):
+    #Makes the design for the upload page
+    def create_widgets(self):   
         tk.Label(self, text="Upload Air Quality Data").grid(column=3, pady=20)
 
         tk.Label(self, text="AQI Value:").grid(row=1, column=0, pady=5)
@@ -46,19 +49,22 @@ class UploadFrame(tk.Frame):
         tk.Button(self, text="Upload data", command=self.upload_data).grid(row=3, column=3, pady=10)
 
 
-    def upload_data(self):
-        AQI = self.AQIValue.get()
-        CO= self.COValue.get()
-        Ozone = self.OzoneValue.get()
-        NO2 = self.NO2Value.get()
-        PM25 = self.PM25Value.get()
-        lng = self.lng.get()
-        lat = self.lat.get()
+    #Allows the Upload button to work
+    def upload_data(self):  
 
-        import pandas as pd
+        AQI = self.AQIValue.get().strip()
+        CO = self.COValue.get().strip()
+        Ozone = self.OzoneValue.get().strip()
+        NO2 = self.NO2Value.get().strip()
+        PM25 = self.PM25Value.get().strip()
+        lat = self.lat.get().strip()
+        lng = self.lng.get().strip()
 
-        df = pd.read_csv('Test.csv')
-        df = pd.DataFrame({
+        # ensure Test.csv is in the same folder as this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filename = os.path.join(script_dir, 'Test.csv')
+
+        new_df = pd.DataFrame({
             'AQI Value': [AQI],
             'CO AQI Value': [CO],
             'Ozone AQI Value': [Ozone],
@@ -67,8 +73,21 @@ class UploadFrame(tk.Frame):
             'lat': [lat],
             'lng': [lng]
         })
-        df = pd.concat([df, df], ignore_index=True)
-        df.to_csv('Test.csv', index=False)
 
-        
-        messagebox.showinfo("Upload", "Data uploaded successfully!")
+        # write header only if file missing or empty
+        write_header = False
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                if not f.read(1):
+                    write_header = True
+        except FileNotFoundError:
+            write_header = True
+
+        try:
+            new_df.to_csv(filename, mode='a', index=False, header=write_header)
+            # quick verification
+            df_check = pd.read_csv(filename)
+            messagebox.showinfo("Upload",
+                f"Data uploaded!\nFile: {filename}\nLast row: {df_check.tail(1).to_dict(orient='records')[0]}")
+        except Exception as e:
+            messagebox.showerror("Upload error", f"Could not write to {filename}:\n{e}")
