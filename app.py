@@ -8,7 +8,22 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 
 
+#----------------------------------------------
+# AQI Calculation (for pm_25 to start we will add others later)
+#----------------------------------------------
+def calculate_aqi(C, breakpoints):
+    for bp in breakpoints:
+        if bp["C_lo"] <= C <= bp["C_hi"]:
+            return ((bp["I_hi"] - bp["I_lo"]) /
+                    (bp["C_hi"] - bp["C_lo"])) * (C - bp["C_lo"]) + bp["I_lo"]
+    return None
 
+pm25_breakpoints = [
+    {"C_lo": 0.0, "C_hi": 12.0, "I_lo": 0, "I_hi": 50},
+    {"C_lo": 12.1, "C_hi": 35.4, "I_lo": 51, "I_hi": 100},
+    {"C_lo": 35.5, "C_hi": 55.4, "I_lo": 101, "I_hi": 150},
+    {"C_lo": 55.5, "C_hi": 150.4, "I_lo": 151, "I_hi": 200},
+]
 
 # ---------------------------------------------
 # COLORS & THEME (Static Prototype)
@@ -128,7 +143,12 @@ g.create_arc(10, 10, 290, 290, start=288, extent=36, width=20, outline=RED, styl
 # Needle
 g.create_line(150, 150, 80, 120, width=4, fill=GREEN)
 
-aqi_value = tk.Label(card1, text="42", font=("Segoe UI", 28, "bold"), bg=CARD_BG, fg=GREEN)
+current_pm25 = 12  # we will replace later with real data
+current_aqi = int(calculate_aqi(current_pm25, pm25_breakpoints))
+
+aqi_value = tk.Label(card1, text=str(current_aqi),
+                     font=("Segoe UI", 28, "bold"),
+                     bg=CARD_BG, fg=GREEN)
 aqi_value.pack()
 
 aqi_status = tk.Label(card1, text="Good", font=("Segoe UI", 14), bg=CARD_BG, fg=GREEN)
@@ -152,9 +172,10 @@ def pollutant_row(parent, name, value, color):
     canvas.pack()
     
     canvas.create_rectangle(0, 0, value * 2, 8, fill=color, outline="")
-
-pollutant_row(card2, "PM2.5", 12, GREEN) #WE can change 12 and tthe other numbers into the formula so it is responsive
-pollutant_row(card2, "PM10", 25, YELLOW)
+    
+pm25_value = 12
+pollutant_row(card2, "PM2.5", pm25_value, GREEN) 
+pollutant_row(card2, "PM10", 25, YELLOW) #WE can change 25 and tthe other numbers into the formula so it is responsive
 pollutant_row(card2, "O₃", 45, ORANGE)
 
 # ---------------------------------------------
@@ -200,7 +221,10 @@ chart_card = create_card(seconframe, 550, 300)
 tk.Label(chart_card, text="24-Hour Trend", font=("Segoe UI", 14, "bold"), bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
 fig, ax = plt.subplots(figsize=(5, 2.5))
-ax.plot([40, 38, 39, 55, 60, 58, 45], linewidth=3)
+pm25_series = [10, 12, 14, 20, 25, 22, 18]
+aqi_series = [calculate_aqi(v, pm25_breakpoints) for v in pm25_series]
+
+ax.plot(aqi_series, linewidth=3)
 ax.set_ylim(0, 80)
 ax.set_xlabel("Time")
 ax.set_ylabel("AQI")
@@ -228,5 +252,20 @@ canvas2 = FigureCanvasTkAgg(fig2, master=chart_card2)
 canvas2.draw()  
 canvas2.get_tk_widget().pack()
 
+#----------------------------------------------
+#Simulating Updating Data
+#----------------------------------------------
+def refresh_dashboard():
+    # Example: simulate new data
+    new_pm25 = np.random.uniform(5, 40)
+
+    new_aqi = int(calculate_aqi(new_pm25, pm25_breakpoints))
+    aqi_value.config(text=str(new_aqi))
+
+    root.after(5000, refresh_dashboard)  # update every 5 sec
+
+refresh_dashboard()
+
 # ---------------------------------------------
+
 root.mainloop()
