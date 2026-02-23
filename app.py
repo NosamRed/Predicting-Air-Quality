@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
-from login import LoginFrame
+from Login import LoginFrame
+from Upload import UploadFrame
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -67,6 +68,15 @@ def open_login():
     login_ui = LoginFrame(win, on_login_success=on_success)
     login_ui.pack(fill="both", expand=True)
 
+def open_upload():
+    win = tk.Toplevel(root)
+    win.title("Upload Data")
+    win.geometry("900x200")
+    win.grab_set()
+
+    upload_ui = UploadFrame(win)
+    upload_ui.pack(fill="both", expand=True)
+
 # -----------------------------------------
 # TITLE BAR
 # -----------------------------------------
@@ -75,6 +85,10 @@ title_frame.pack(fill="x", padx=20, pady=10)
 
 tk.Label(title_frame, text="Air Quality Index",
          font=("Segoe UI", 22, "bold"), bg=BG, fg=TEXT_DARK).pack(side="left")
+
+
+upload_button = tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY, fg=TEXT_DARK, font=("Segoe UI", 10), bd=0, relief="flat", command=open_upload)
+upload_button.pack(side="right", padx=10)
 
 tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY,
           fg=TEXT_DARK, bd=0, relief="flat").pack(side="right", padx=10)
