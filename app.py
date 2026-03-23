@@ -90,8 +90,6 @@ tk.Label(title_frame, text="Air Quality Index",
 upload_button = tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY, fg=TEXT_DARK, font=("Segoe UI", 10), bd=0, relief="flat", command=open_upload)
 upload_button.pack(side="right", padx=10)
 
-tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY,
-          fg=TEXT_DARK, bd=0, relief="flat").pack(side="right", padx=10)
 
 tk.Button(title_frame, text="Login", bg=GREEN, fg="white",
           font=("Segoe UI", 10, "bold"), bd=0, relief="flat",
