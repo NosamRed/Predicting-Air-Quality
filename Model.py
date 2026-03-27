@@ -16,7 +16,6 @@ data.columns = [col.strip().lower() for col in data.columns]
 
 # Exploratory Data Analysis
 sns.pairplot(data)
-plt.show()
 corr = data.corr()
 sns.heatmap(corr, annot=True, cmap='coolwarm')
 
@@ -37,3 +36,15 @@ y_pred = model.predict(X_test)
 print("Mean Absolute Error:", mean_absolute_error(y_test, y_pred))
 print("Mean Squared Error:", mean_squared_error(y_test, y_pred))
 print("R2 Score:", r2_score(y_test, y_pred))
+
+# ----------------------------
+# Function to return Actual vs Predicted AQI figure
+# ----------------------------
+def plot_actual_vs_predicted():
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.scatter(y_test, y_pred)
+    ax.set_xlabel("Actual AQI")
+    ax.set_ylabel("Predicted AQI")
+    ax.set_title("Actual vs Predicted AQI")
+    fig.tight_layout()
+    return fig
