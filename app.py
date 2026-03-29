@@ -1,12 +1,17 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
 from Login import LoginFrame
-from Upload import UploadFrame
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+from Model import (
+    plot_actual_vs_predicted,
+    plot_feature_importance,
+    get_model_metrics,
+    get_data_preview
+)
 
 # -----------------------------------------
 # AQI CALCULATION
@@ -46,8 +51,8 @@ root = tk.Tk()
 root.title("Air Quality Dashboard")
 root.geometry("1200x800")
 root.configure(bg=BG)
-icon = tk.PhotoImage(file="FunnyMEME.png")
-root.iconphoto(True, icon)
+# icon = tk.PhotoImage(file="FunnyMEME.png")
+# root.iconphoto(True, icon)
 
 dashboard = tk.Frame(root, bg=BG)
 dashboard.pack(fill="both", expand=True)
@@ -68,15 +73,6 @@ def open_login():
     login_ui = LoginFrame(win, on_login_success=on_success)
     login_ui.pack(fill="both", expand=True)
 
-def open_upload():
-    win = tk.Toplevel(root)
-    win.title("Upload Data")
-    win.geometry("900x200")
-    win.grab_set()
-
-    upload_ui = UploadFrame(win)
-    upload_ui.pack(fill="both", expand=True)
-
 # -----------------------------------------
 # TITLE BAR
 # -----------------------------------------
@@ -86,10 +82,8 @@ title_frame.pack(fill="x", padx=20, pady=10)
 tk.Label(title_frame, text="Air Quality Index",
          font=("Segoe UI", 22, "bold"), bg=BG, fg=TEXT_DARK).pack(side="left")
 
-
-upload_button = tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY, fg=TEXT_DARK, font=("Segoe UI", 10), bd=0, relief="flat", command=open_upload)
-upload_button.pack(side="right", padx=10)
-
+tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY,
+          fg=TEXT_DARK, bd=0, relief="flat").pack(side="right", padx=10)
 
 tk.Button(title_frame, text="Login", bg=GREEN, fg="white",
           font=("Segoe UI", 10, "bold"), bd=0, relief="flat",
@@ -219,7 +213,7 @@ chart1.pack(side="left", padx=10)
 tk.Label(chart1, text="24-Hour Trend", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
-fig, ax = plt.subplots(figsize=(5, 2.5))
+fig, ax = plt.subplots(figsize=(5, 3))
 pm25_series = [10, 12, 14, 20, 25, 22, 18]
 aqi_series = [calculate_aqi(v, pm25_breakpoints) for v in pm25_series]
 
@@ -235,7 +229,7 @@ canvas.get_tk_widget().pack()
 
 # Chart 2: City Comparison
 chart2 = create_card(row3, 550, 300)
-chart2.pack(side="left", padx=10)
+chart2.pack(side="bottom", padx=10)
 
 tk.Label(chart2, text="City Comparison", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
@@ -253,6 +247,88 @@ fig2.tight_layout()
 canvas2 = FigureCanvasTkAgg(fig2, master=chart2)
 canvas2.draw()
 canvas2.get_tk_widget().pack()
+
+# -----------------------------------------
+# ROW 4 — CHARTS (TWO COLUMNS)
+# -----------------------------------------
+row4 = tk.Frame(content, bg=LIGHT_GRAY)
+row4.pack(fill="x", pady=20)
+
+
+#chart 3 Actual vs Predicted AQI
+chart3 = create_card(row4, 550, 300)
+chart3.pack(side="left", padx=10)
+
+tk.Label(chart3, text="Actual vs Predicted AQI", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+fig = plot_actual_vs_predicted()
+canvas = FigureCanvasTkAgg(fig, master=chart3)
+canvas.draw()
+canvas.get_tk_widget().pack()
+
+# Chart 4 Feature Importance
+chart4 = create_card(row4, 550, 300)
+chart4.pack(side="left", padx=10)
+
+tk.Label(chart4, text="Feature Importance", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+fig = plot_feature_importance()
+canvas = FigureCanvasTkAgg(fig, master=chart4)
+canvas.draw()
+canvas.get_tk_widget().pack()
+
+#------------------------------------------
+# Row 5- Model Metrics and Data Preview
+#------------------------------------------
+row5 = tk.Frame(content, bg=LIGHT_GRAY)
+row5.pack(fill="x", pady=20)
+# chart 5 model metrics
+metrics_card = create_card(row5, 550, 200)
+metrics_card.pack(side="left", padx=10)
+
+tk.Label(metrics_card, text="Model Metrics", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+metrics = get_model_metrics()
+
+tk.Label(metrics_card, text=f"Model: {metrics['model_name']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"MAE: {metrics['mae']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"MSE: {metrics['mse']}",font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"R² Score: {metrics['r2']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+
+# chart 6 data preview
+# Card 6: Dataset Preview
+data_card = create_card(row5, 550, 260)
+data_card.pack(side="left", padx=10)
+
+tk.Label(data_card, text="Dataset Preview", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10, pady=10)
+
+preview = get_data_preview(5)
+
+table_frame = tk.Frame(data_card, bg=CARD_BG)
+table_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+cols = list(preview.columns)
+
+tree = ttk.Treeview(table_frame, columns=cols, show="headings", height=5)
+tree.pack(fill="both", expand=True)
+
+for col in cols:
+    tree.heading(col, text=col)
+    tree.column(col, width=110, anchor="center")
+
+for _, row in preview.iterrows():
+    tree.insert("", "end", values=list(row))
 
 # -----------------------------------------
 # AUTO REFRESH
