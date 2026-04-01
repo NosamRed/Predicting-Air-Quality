@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
 from Login import LoginFrame
+from Info import InfoFrame
+from Upload import UploadFrame
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -51,8 +53,8 @@ root = tk.Tk()
 root.title("Air Quality Dashboard")
 root.geometry("1200x800")
 root.configure(bg=BG)
-# icon = tk.PhotoImage(file="FunnyMEME.png")
-# root.iconphoto(True, icon)
+icon = tk.PhotoImage(file="FunnyMEME.png")
+root.iconphoto(True, icon)
 
 dashboard = tk.Frame(root, bg=BG)
 dashboard.pack(fill="both", expand=True)
@@ -74,6 +76,30 @@ def open_login():
     login_ui.pack(fill="both", expand=True)
 
 # -----------------------------------------
+# UPLOAD
+# -----------------------------------------
+def open_upload():
+    win = tk.Toplevel(root)
+    win.title("Upload Data")
+    win.geometry("900x200")
+    win.grab_set()
+
+    upload_ui = UploadFrame(win)
+    upload_ui.pack(fill="both", expand=True)
+
+# -----------------------------------------
+# INFO
+# -----------------------------------------
+def open_info():
+    win = tk.Toplevel(root)
+    win.title("Developer Info")
+    win.geometry("300x250")
+    win.grab_set()
+
+    info_ui = InfoFrame(win)
+    info_ui.pack(fill="both", expand=True)
+
+# -----------------------------------------
 # TITLE BAR
 # -----------------------------------------
 title_frame = tk.Frame(dashboard, bg=BG)
@@ -82,8 +108,11 @@ title_frame.pack(fill="x", padx=20, pady=10)
 tk.Label(title_frame, text="Air Quality Index",
          font=("Segoe UI", 22, "bold"), bg=BG, fg=TEXT_DARK).pack(side="left")
 
-tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY,
-          fg=TEXT_DARK, bd=0, relief="flat").pack(side="right", padx=10)
+tk.Button(title_frame, text="Developer Info", font=("Segoe UI", 10, "bold"), bg=LIGHT_GRAY, fg=TEXT_DARK,
+          bd=0, relief="flat", command=open_info).pack(side="right", padx=10)
+
+tk.Button(title_frame, text="Upload Data",font=("Segoe UI", 10, "bold"), bg=LIGHT_GRAY,
+          fg=TEXT_DARK, bd=0, relief="flat", command=open_upload).pack(side="right", padx=10)
 
 tk.Button(title_frame, text="Login", bg=GREEN, fg="white",
           font=("Segoe UI", 10, "bold"), bd=0, relief="flat",
