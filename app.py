@@ -46,8 +46,8 @@ root = tk.Tk()
 root.title("Air Quality Dashboard")
 root.geometry("1200x800")
 root.configure(bg=BG)
-icon = tk.PhotoImage(file="FunnyMEME.png")
-root.iconphoto(True, icon)
+# icon = tk.PhotoImage(file="FunnyMEME.png")
+# root.iconphoto(True, icon)
 
 dashboard = tk.Frame(root, bg=BG)
 dashboard.pack(fill="both", expand=True)
@@ -71,11 +71,23 @@ def open_login():
 def open_upload():
     win = tk.Toplevel(root)
     win.title("Upload Data")
-    win.geometry("900x200")
+    win.geometry("1300x250")
     win.grab_set()
 
     upload_ui = UploadFrame(win)
     upload_ui.pack(fill="both", expand=True)
+
+# -----------------------------------------
+# INFO
+# -----------------------------------------
+def open_info():
+    win = tk.Toplevel(root)
+    win.title("Developer Info")
+    win.geometry("300x300")
+    win.grab_set()
+
+    info_ui = InfoFrame(win)
+    info_ui.pack(fill="both", expand=True)
 
 # -----------------------------------------
 # TITLE BAR
