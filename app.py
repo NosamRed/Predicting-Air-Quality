@@ -96,7 +96,7 @@ def open_upload():
 def open_info():
     win = tk.Toplevel(root)
     win.title("Developer Info")
-    win.geometry("300x250")
+    win.geometry("750x500")
     win.grab_set()
 
     info_ui = InfoFrame(win)
