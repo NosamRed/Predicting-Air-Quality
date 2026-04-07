@@ -1,12 +1,22 @@
+import math
 import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
 from Login import LoginFrame
+from Info import InfoFrame
 from Upload import UploadFrame
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+
+from Model import (
+    plot_actual_vs_predicted,
+    plot_feature_importance,
+    get_model_metrics,
+    get_data_preview
+)
+
 
 # -----------------------------------------
 # AQI CALCULATION
@@ -46,8 +56,8 @@ root = tk.Tk()
 root.title("Air Quality Dashboard")
 root.geometry("1200x800")
 root.configure(bg=BG)
-# icon = tk.PhotoImage(file="FunnyMEME.png")
-# root.iconphoto(True, icon)
+icon = tk.PhotoImage(file="FunnyMEME.png")
+root.iconphoto(True, icon)
 
 dashboard = tk.Frame(root, bg=BG)
 dashboard.pack(fill="both", expand=True)
@@ -68,10 +78,13 @@ def open_login():
     login_ui = LoginFrame(win, on_login_success=on_success)
     login_ui.pack(fill="both", expand=True)
 
+# -----------------------------------------
+# UPLOAD
+# -----------------------------------------
 def open_upload():
     win = tk.Toplevel(root)
     win.title("Upload Data")
-    win.geometry("1300x250")
+    win.geometry("1500x250")
     win.grab_set()
 
     upload_ui = UploadFrame(win)
@@ -83,7 +96,7 @@ def open_upload():
 def open_info():
     win = tk.Toplevel(root)
     win.title("Developer Info")
-    win.geometry("300x300")
+    win.geometry("750x500")
     win.grab_set()
 
     info_ui = InfoFrame(win)
@@ -98,10 +111,11 @@ title_frame.pack(fill="x", padx=20, pady=10)
 tk.Label(title_frame, text="Air Quality Index",
          font=("Segoe UI", 22, "bold"), bg=BG, fg=TEXT_DARK).pack(side="left")
 
+tk.Button(title_frame, text="Developer Info", font=("Segoe UI", 10, "bold"), bg=LIGHT_GRAY, fg=TEXT_DARK,
+          bd=0, relief="flat", command=open_info).pack(side="right", padx=10)
 
-upload_button = tk.Button(title_frame, text="Upload Data", bg=LIGHT_GRAY, fg=TEXT_DARK, font=("Segoe UI", 10), bd=0, relief="flat", command=open_upload)
-upload_button.pack(side="right", padx=10)
-
+tk.Button(title_frame, text="Upload Data",font=("Segoe UI", 10, "bold"), bg=LIGHT_GRAY,
+          fg=TEXT_DARK, bd=0, relief="flat", command=open_upload).pack(side="right", padx=10)
 
 tk.Button(title_frame, text="Login", bg=GREEN, fg="white",
           font=("Segoe UI", 10, "bold"), bd=0, relief="flat",
@@ -148,26 +162,35 @@ card1.pack(side="left", padx=10)
 tk.Label(card1, text="San Francisco", font=("Segoe UI", 16, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack()
 
-g = Canvas(card1, width=300, height=150, bg=CARD_BG, highlightthickness=0)
+g = Canvas(card1, width=300, height=180, bg=CARD_BG, highlightthickness=0)
 g.pack()
 
 # Gauge arcs
-g.create_arc(10, 10, 290, 290, start=180, extent=36, width=20, outline=GREEN, style="arc")
-g.create_arc(10, 10, 290, 290, start=216, extent=36, width=20, outline=YELLOW, style="arc")
-g.create_arc(10, 10, 290, 290, start=252, extent=36, width=20, outline=ORANGE, style="arc")
-g.create_arc(10, 10, 290, 290, start=288, extent=36, width=20, outline=RED, style="arc")
+# Background arc (light base)
+g.create_arc(10, 10, 290, 290, start=0, extent=180,
+             width=40, outline="#E5E7EB", style="arc")
+
+# Color ranges (background only)
+g.create_arc(10, 10, 290, 290, start=135, extent=45,
+             width=40, outline=GREEN, style="arc")
+
+g.create_arc(10, 10, 290, 290, start=45, extent=90,
+             width=40, outline=YELLOW, style="arc")
+
+g.create_arc(10, 10, 290, 290, start=0, extent=45,
+             width=40, outline=RED, style="arc")
 
 # Needle
-g.create_line(150, 150, 80, 120, width=4, fill=GREEN)
-
-current_pm25 = 12
-current_aqi = int(calculate_aqi(current_pm25, pm25_breakpoints))
+needle = g.create_line(150, 150, 95, 95, width=4, fill=GREEN)
+# Base background arc
+current_aqi = 42
 
 aqi_value = tk.Label(card1, text=str(current_aqi), font=("Segoe UI", 28, "bold"),
                      bg=CARD_BG, fg=GREEN)
 aqi_value.pack()
 
-tk.Label(card1, text="Good", font=("Segoe UI", 14), bg=CARD_BG, fg=GREEN).pack()
+aqi_status = tk.Label(card1, text="Good", font=("Segoe UI", 14), bg=CARD_BG, fg=GREEN)
+aqi_status.pack()
 
 # Card 2: Pollutant Levels
 card2 = create_card(row1, 550, 250)
@@ -231,7 +254,7 @@ chart1.pack(side="left", padx=10)
 tk.Label(chart1, text="24-Hour Trend", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
-fig, ax = plt.subplots(figsize=(5, 2.5))
+fig, ax = plt.subplots(figsize=(5, 3))
 pm25_series = [10, 12, 14, 20, 25, 22, 18]
 aqi_series = [calculate_aqi(v, pm25_breakpoints) for v in pm25_series]
 
@@ -247,7 +270,7 @@ canvas.get_tk_widget().pack()
 
 # Chart 2: City Comparison
 chart2 = create_card(row3, 550, 300)
-chart2.pack(side="left", padx=10)
+chart2.pack(side="bottom", padx=10)
 
 tk.Label(chart2, text="City Comparison", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
@@ -267,14 +290,156 @@ canvas2.draw()
 canvas2.get_tk_widget().pack()
 
 # -----------------------------------------
+# ROW 4 — CHARTS (TWO COLUMNS)
+# -----------------------------------------
+row4 = tk.Frame(content, bg=LIGHT_GRAY)
+row4.pack(fill="x", pady=20)
+
+
+#chart 3 Actual vs Predicted AQI
+chart3 = create_card(row4, 550, 300)
+chart3.pack(side="left", padx=10)
+
+tk.Label(chart3, text="Actual vs Predicted AQI", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+fig = plot_actual_vs_predicted()
+canvas = FigureCanvasTkAgg(fig, master=chart3)
+canvas.draw()
+canvas.get_tk_widget().pack()
+
+# Chart 4 Feature Importance
+chart4 = create_card(row4, 550, 300)
+chart4.pack(side="left", padx=10)
+
+tk.Label(chart4, text="Feature Importance", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+fig = plot_feature_importance()
+canvas = FigureCanvasTkAgg(fig, master=chart4)
+canvas.draw()
+canvas.get_tk_widget().pack()
+
+#------------------------------------------
+# Row 5- Model Metrics and Data Preview
+#------------------------------------------
+row5 = tk.Frame(content, bg=LIGHT_GRAY)
+row5.pack(fill="x", pady=20)
+# chart 5 model metrics
+metrics_card = create_card(row5, 550, 200)
+metrics_card.pack(side="left", padx=10)
+
+tk.Label(metrics_card, text="Model Metrics", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
+
+metrics = get_model_metrics()
+
+tk.Label(metrics_card, text=f"Model: {metrics['model_name']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"MAE: {metrics['mae']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"MSE: {metrics['mse']}",font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+tk.Label(metrics_card, text=f"R² Score: {metrics['r2']}",font=("Segoe UI", 11), 
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+
+
+# chart 6 data preview
+# Card 6: Dataset Preview
+data_card = create_card(row5, 550, 260)
+data_card.pack(side="left", padx=10)
+
+tk.Label(data_card, text="Dataset Preview", font=("Segoe UI", 14, "bold"),
+         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10, pady=10)
+
+preview = get_data_preview(5)
+
+table_frame = tk.Frame(data_card, bg=CARD_BG)
+table_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+cols = list(preview.columns)
+
+tree = ttk.Treeview(table_frame, columns=cols, show="headings", height=5)
+tree.pack(fill="both", expand=True)
+
+for col in cols:
+    tree.heading(col, text=col)
+    tree.column(col, width=110, anchor="center")
+
+for _, row in preview.iterrows():
+    tree.insert("", "end", values=list(row))
+
+#-----------------------------------------
+# Moving needle function
+#-----------------------------------------
+def update_gauge(aqi):
+    # Clamp AQI to gauge range
+    aqi = max(0, min(aqi, 150))
+
+    # Pick color and status
+    if aqi <= 50:
+        color = GREEN
+        status = "Good"
+    elif aqi <= 100:
+        color = YELLOW
+        status = "Moderate"
+    else:
+        color = RED
+        status = "Unhealthy"
+
+    # Update number + status color
+    aqi_value.config(text=str(aqi), fg=color)
+    aqi_status.config(text=status, fg=color)
+
+    # Map AQI 0–150 to angle 180–0 degrees
+    angle = 180 - (aqi / 150) * 180
+    radians = math.radians(angle)
+
+    # Needle start and end points
+    center_x = 150
+    center_y = 150
+    needle_length = 70
+
+    end_x = center_x + needle_length * math.cos(radians)
+    end_y = center_y - needle_length * math.sin(radians)
+
+    # Move needle
+    g.coords(needle, center_x, center_y, end_x, end_y)
+    g.itemconfig(needle, fill=color)
+
+# -----------------------------------------
 # AUTO REFRESH
 # -----------------------------------------
+refresh_job = None
+is_closing = False
+
 def refresh_dashboard():
-    new_pm25 = np.random.uniform(5, 40)
-    new_aqi = int(calculate_aqi(new_pm25, pm25_breakpoints))
-    aqi_value.config(text=str(new_aqi))
-    root.after(5000, refresh_dashboard)
+    global refresh_job, is_closing
 
+    if is_closing or not root.winfo_exists():
+        return
+
+    new_aqi = np.random.randint(0, 151)
+    update_gauge(new_aqi)
+
+    refresh_job = root.after(5000, refresh_dashboard)
+
+def on_closing():
+    global refresh_job, is_closing
+    is_closing = True
+
+    if refresh_job is not None:
+        try:
+            root.after_cancel(refresh_job)
+        except tk.TclError:
+            pass
+        refresh_job = None
+
+    root.quit()
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 refresh_dashboard()
-
 root.mainloop()
