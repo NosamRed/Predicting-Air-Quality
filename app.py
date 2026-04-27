@@ -1,3 +1,4 @@
+import os
 import math
 import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
@@ -11,11 +12,16 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 
 from Model import (
+    load_default_model,
+    load_model_from_csv,
     plot_actual_vs_predicted,
     plot_feature_importance,
     get_model_metrics,
-    get_data_preview
+    get_data_preview,
+    get_latest_aqi
 )
+load_default_model()
+
 
 
 # -----------------------------------------
@@ -49,6 +55,11 @@ YELLOW = "#EAB308"
 ORANGE = "#F97316"
 RED = "#EF4444"
 
+chart3_canvas = None
+chart4_canvas = None
+metrics_labels = {}
+tree = None
+
 # -----------------------------------------
 # MAIN WINDOW
 # -----------------------------------------
@@ -56,8 +67,8 @@ root = tk.Tk()
 root.title("Air Quality Dashboard")
 root.geometry("1200x800")
 root.configure(bg=BG)
-icon = tk.PhotoImage(file="FunnyMEME.png")
-root.iconphoto(True, icon)
+# root.iconbitmap ("logo.ico")
+
 
 dashboard = tk.Frame(root, bg=BG)
 dashboard.pack(fill="both", expand=True)
@@ -84,11 +95,72 @@ def open_login():
 def open_upload():
     win = tk.Toplevel(root)
     win.title("Upload Data")
-    win.geometry("900x200")
+    win.geometry("500x250")
     win.grab_set()
 
-    upload_ui = UploadFrame(win)
+    upload_ui = UploadFrame(win, refresh_callback=refresh_with_new_csv)
     upload_ui.pack(fill="both", expand=True)
+
+def refresh_with_new_csv(csv_path):
+    try:
+        load_model_from_csv(csv_path)
+
+        latest = get_latest_aqi()
+        update_gauge(latest["aqi"])
+
+
+        refresh_model_charts()
+        refresh_metrics()
+        refresh_table()
+
+        messagebox.showinfo(
+            "Dashboard Updated",
+            "The dashboard is now using the uploaded CSV file."
+        )
+
+    except Exception as e:
+        messagebox.showerror(
+            "CSV Error",
+            f"Could not load uploaded CSV:\n{e}"
+        )
+def refresh_model_charts():
+    global chart3_canvas, chart4_canvas
+
+    # Remove old actual vs predicted graph
+    if chart3_canvas is not None:
+        chart3_canvas.get_tk_widget().destroy()
+
+    fig = plot_actual_vs_predicted()
+    chart3_canvas = FigureCanvasTkAgg(fig, master=chart3)
+    chart3_canvas.draw()
+    chart3_canvas.get_tk_widget().pack()
+
+    # Remove old feature importance graph
+    if chart4_canvas is not None:
+        chart4_canvas.get_tk_widget().destroy()
+
+    fig = plot_feature_importance()
+    chart4_canvas = FigureCanvasTkAgg(fig, master=chart4)
+    chart4_canvas.draw()
+    chart4_canvas.get_tk_widget().pack()
+
+def refresh_metrics():
+    metrics = get_model_metrics()
+
+    metrics_labels["model"].config(text=f"Model: {metrics['model_name']}")
+    metrics_labels["mae"].config(text=f"MAE: {metrics['mae']}")
+    metrics_labels["mse"].config(text=f"MSE: {metrics['mse']}")
+    metrics_labels["r2"].config(text=f"R² Score: {metrics['r2']}")
+
+
+def refresh_table():
+    preview = get_data_preview(5)
+
+    for item in tree.get_children():
+        tree.delete(item)
+
+    for _, row in preview.iterrows():
+        tree.insert("", "end", values=list(row))
 
 # -----------------------------------------
 # INFO
@@ -304,9 +376,9 @@ tk.Label(chart3, text="Actual vs Predicted AQI", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
 fig = plot_actual_vs_predicted()
-canvas = FigureCanvasTkAgg(fig, master=chart3)
-canvas.draw()
-canvas.get_tk_widget().pack()
+chart3_canvas = FigureCanvasTkAgg(fig, master=chart3)
+chart3_canvas.draw()
+chart3_canvas.get_tk_widget().pack()
 
 # Chart 4 Feature Importance
 chart4 = create_card(row4, 550, 300)
@@ -316,9 +388,9 @@ tk.Label(chart4, text="Feature Importance", font=("Segoe UI", 14, "bold"),
          bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=10)
 
 fig = plot_feature_importance()
-canvas = FigureCanvasTkAgg(fig, master=chart4)
-canvas.draw()
-canvas.get_tk_widget().pack()
+chart4_canvas = FigureCanvasTkAgg(fig, master=chart4)
+chart4_canvas.draw()
+chart4_canvas.get_tk_widget().pack()
 
 #------------------------------------------
 # Row 5- Model Metrics and Data Preview
@@ -334,16 +406,21 @@ tk.Label(metrics_card, text="Model Metrics", font=("Segoe UI", 14, "bold"),
 
 metrics = get_model_metrics()
 
-tk.Label(metrics_card, text=f"Model: {metrics['model_name']}",font=("Segoe UI", 11), 
-         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+metrics_labels["model"] = tk.Label(metrics_card, text=f"Model: {metrics['model_name']}",
+                                   font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK)
+metrics_labels["model"].pack(anchor="w", padx=15, pady=5)
 
-tk.Label(metrics_card, text=f"MAE: {metrics['mae']}",font=("Segoe UI", 11), 
-         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+metrics_labels["mae"] = tk.Label(metrics_card, text=f"MAE: {metrics['mae']}",
+                                 font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK)
+metrics_labels["mae"].pack(anchor="w", padx=15, pady=5)
 
-tk.Label(metrics_card, text=f"MSE: {metrics['mse']}",font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+metrics_labels["mse"] = tk.Label(metrics_card, text=f"MSE: {metrics['mse']}",
+                                 font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK)
+metrics_labels["mse"].pack(anchor="w", padx=15, pady=5)
 
-tk.Label(metrics_card, text=f"R² Score: {metrics['r2']}",font=("Segoe UI", 11), 
-         bg=CARD_BG, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=5)
+metrics_labels["r2"] = tk.Label(metrics_card, text=f"R² Score: {metrics['r2']}",
+                                font=("Segoe UI", 11), bg=CARD_BG, fg=TEXT_DARK)
+metrics_labels["r2"].pack(anchor="w", padx=15, pady=5)
 
 
 # chart 6 data preview
@@ -421,8 +498,8 @@ def refresh_dashboard():
     if is_closing or not root.winfo_exists():
         return
 
-    new_aqi = np.random.randint(0, 151)
-    update_gauge(new_aqi)
+    latest = get_latest_aqi()
+    update_gauge(latest["aqi"])
 
     refresh_job = root.after(5000, refresh_dashboard)
 
